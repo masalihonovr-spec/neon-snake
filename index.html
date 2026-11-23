@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#080d12">
+<meta name="description" content="NEON SNAKE — неоновая змейка. Собирай яблоки, устанавливай рекорды и проходи сквозь стены!">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEON SNAKE">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<title>NEON SNAKE</title>
+<style>
+:root{color-scheme:dark;--green:#65ffad;--bg:#080d12;--panel:#14252b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{min-height:100svh;min-height:100dvh;background:radial-gradient(ellipse at 50% 0%,#17352e 0%,#0b151b 48%,#080d12 100%);overscroll-behavior:none}
+.app{width:min(100%,620px);min-height:100svh;min-height:100dvh;margin:auto;padding:calc(12px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:13px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-size:clamp(25px,7vw,36px);font-weight:950;letter-spacing:1.5px;color:var(--green);text-shadow:0 0 18px #21ff91aa}
+.brand small{display:block;font-size:10px;letter-spacing:3px;color:#8aa99a;text-shadow:none;font-weight:700;margin-top:-3px}
+.icon-btn{width:44px;height:44px;border:1px solid #2a5546;border-radius:14px;background:#142720;color:#aaffce;font-size:20px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.stat{padding:10px 8px;background:linear-gradient(145deg,#172d31,#101c22);border:1px solid #29483f;border-radius:14px;text-align:center;color:#9cb7aa;font-size:11px;font-weight:800;letter-spacing:1px}
+.stat strong{display:block;color:var(--green);font-size:clamp(20px,5vw,25px);line-height:1.25;margin-top:3px;font-variant-numeric:tabular-nums}
+.board-wrap{padding:7px;border-radius:20px;background:linear-gradient(135deg,#236448,#10231f 55%,#17323a);box-shadow:0 0 32px #00ff8030, inset 0 0 0 1px #6affaa22}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:13px;touch-action:none;background:#0c171b}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;cursor:pointer;touch-action:manipulation}
+.primary,.secondary{border:0;border-radius:14px;padding:14px 10px;font-weight:850;font-size:15px}
+.primary{color:#052015;background:linear-gradient(135deg,#8affc1,#17d879);box-shadow:0 5px 18px #00e87826}
+.secondary{color:#c9f5df;background:#18332d;border:1px solid #31594b}
+.dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:48px 48px;gap:7px;max-width:245px;width:100%;margin:0 auto}
+.dpad button{border:1px solid #285443;border-radius:13px;background:linear-gradient(145deg,#1a3b30,#11251f);color:#83ffc0;font-size:22px;font-weight:900}
+.dpad button:active{background:#2bdc86;color:#062014}
+.up{grid-column:2}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
+.hint{text-align:center;color:#78968a;font-size:12px;line-height:1.45}
+footer{text-align:center;color:#547367;font-size:10px;letter-spacing:1px;margin-top:auto}
+.overlay{position:fixed;inset:0;z-index:5;display:none;align-items:center;justify-content:center;padding:22px;background:#020709d9;backdrop-filter:blur(8px)}
+.overlay.show{display:flex}
+.modal{width:min(100%,360px);padding:28px 22px;border:1px solid #54f5a2;border-radius:24px;background:linear-gradient(145deg,#19372e,#101b25);box-shadow:0 0 45px #00ff8050;text-align:center;animation:pop .24s ease-out}
+.modal h2{margin:0 0 10px;color:var(--green);font-size:30px}
+.modal p{color:#c5ded1;line-height:1.5}
+.modal .primary{width:100%;margin-top:10px}
+@keyframes pop{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+@media(min-height:800px){.app{justify-content:space-between}.board-wrap{margin:4px 0}}
+@media(max-height:680px) and (orientation:landscape){.app{max-width:850px;display:grid;grid-template-columns: minmax(260px,1fr) minmax(260px,1fr);align-content:center;gap:10px}.app header,.stats,.hint,footer{grid-column:1}.board-wrap{grid-column:2;grid-row:1/5;align-self:center}.board-wrap canvas{max-height:72svh;width:auto;max-width:100%;margin:auto}.actions,.dpad{grid-column:1}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div class="brand">NEON SNAKE<small>ARCADE • 20 × 20</small></div>
+    <button class="icon-btn" id="soundBtn" aria-label="Включить или выключить звук" title="Звук">♪</button>
+  </header>
+
+  <section class="stats" aria-label="Статистика">
+    <div class="stat">СЧЁТ<strong id="score">0</strong></div>
+    <div class="stat">РЕКОРД<strong id="record">0</strong></div>
+    <div class="stat">ЗАПОЛНЕНО<strong id="filled">3/400</strong></div>
+  </section>
+
+  <div class="board-wrap">
+    <canvas id="game" width="400" height="400" aria-label="Игровое поле 20 на 20"></canvas>
+  </div>
+
+  <div class="actions">
+    <button class="primary" id="restartBtn">↻ Новая игра</button>
+    <button class="secondary" id="pauseBtn">Ⅱ Пауза</button>
+  </div>
+
+  <div class="dpad" aria-label="Кнопки управления">
+    <button class="up" data-dir="UP" aria-label="Вверх">↑</button>
+    <button class="left" data-dir="LEFT" aria-label="Влево">←</button>
+    <button class="down" data-dir="DOWN" aria-label="Вниз">↓</button>
+    <button class="right" data-dir="RIGHT" aria-label="Вправо">→</button>
+  </div>
+
+  <div class="hint">Проведи пальцем по полю, чтобы повернуть змейку<br>Стены сквозные · Собери все 400 клеток для победы</div>
+  <footer>NEON SNAKE · HAVE FUN</footer>
+</main>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2 id="resultTitle">ПОБЕДА!</h2>
+    <p id="resultText">Ты заполнил всё поле!</p>
+    <p id="finalScore"></p>
+    <button class="primary" id="againBtn">Играть снова</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const N = 20, CELL = 20, TOTAL = N*N;
+  const $ = id => document.getElementById(id);
+  let snake, apple, direction, queuedDirection, score, record;
+  let state = "playing"; // playing | paused | over | won
+  let timer = null, soundOn = false, audioCtx = null;
+  const RECORD_KEY = "neonSnakeRecordV1";
+
+  try { record = Number(localStorage.getItem(RECORD_KEY)) || 0; }
+  catch (_) { record = 0; }
+  $("record").textContent = record;
+
+  function beep(freq=520, duration=.07, type="sine") {
+    if (!soundOn) return;
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = type; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(.055, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + duration);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + duration);
+    } catch (_) {}
+  }
+
+  function newApple() {
+    const free = [];
+    for (let y=0; y<N; y++) for (let x=0; x<N; x++) {
+      if (!snake.some(p => p.x===x && p.y===y)) free.push({x,y});
+    }
+    if (!free.length) { win(); return; }
+    apple = free[Math.floor(Math.random()*free.length)];
+  }
+
+  function updateStats() {
+    $("score").textContent = score;
+    $("record").textContent = record;
+    $("filled").textContent = `${snake.length}/${TOTAL}`;
+  }
+
+  function start() {
+    clearInterval(timer);
+    snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    direction = {x:1,y:0};
+    queuedDirection = {x:1,y:0};
+    score = 0;
+    state = "playing";
+    $("overlay").classList.remove("show");
+    $("pauseBtn").textContent = "Ⅱ Пауза";
+    newApple();
+    updateStats();
+    draw();
+    timer = setInterval(tick, 115);
+  }
+
+  const vectors = {
+    UP:{x:0,y:-1}, DOWN:{x:0,y:1},
+    LEFT:{x:-1,y:0}, RIGHT:{x:1,y:0}
+  };
+  function setDirection(name) {
+    if (state !== "playing") return;
+    const v = vectors[name];
+    if (!v) return;
+    if (v.x === -direction.x && v.y === -direction.y) return;
+    queuedDirection = v;
+  }
+
+  function tick() {
+    if (state !== "playing") return;
+    direction = queuedDirection;
+    const head = {
+      x:(snake[0].x + direction.x + N) % N,
+      y:(snake[0].y + direction.y + N) % N
+    };
+    const eating = apple && head.x===apple.x && head.y===apple.y;
+    const collisionBody = eating ? snake : snake.slice(0,-1);
+    if (collisionBody.some(p => p.x===head.x && p.y===head.y)) {
+      lose();
+      return;
+    }
+    snake.unshift(head);
+    if (eating) {
+      score += 10;
+      beep(760,.11);
+      if (score > record) {
+        record = score;
+        try { localStorage.setItem(RECORD_KEY, String(record)); } catch (_) {}
+      }
+      if (snake.length === TOTAL) {
+        updateStats();
+        win();
+        return;
+      }
+      newApple();
+    } else {
+      snake.pop();
+    }
+    updateStats();
+    draw();
+  }
+
+  function finish(title, message, newState) {
+    state = newState;
+    clearInterval(timer);
+    $("resultTitle").textContent = title;
+    $("resultText").textContent = message;
+    $("finalScore").textContent = `Счёт: ${score} · Рекорд: ${record}`;
+    $("overlay").classList.add("show");
+    $("pauseBtn").textContent = "Ⅱ Пауза";
+    draw();
+  }
+  function lose() {
+    beep(150,.25,"triangle");
+    finish("ИГРА ОКОНЧЕНА", "Змейка столкнулась сама с собой. Попробуешь ещё раз?", "over");
+  }
+  function win() {
+    beep(880,.18);
+    setTimeout(() => beep(1100,.22), 140);
+    finish("🏆 ПОБЕДА!", "Невероятно! Ты заполнил все 400 клеток поля!", "won");
+  }
+
+  function togglePause() {
+    if (state === "playing") {
+      state = "paused";
+      clearInterval(timer);
+      $("pauseBtn").textContent = "▶ Продолжить";
+      draw();
+    } else if (state === "paused") {
+      state = "playing";
+      $("pauseBtn").textContent = "Ⅱ Пауза";
+      timer = setInterval(tick, 115);
+      draw();
+    }
+  }
+
+  function roundedRect(x,y,w,h,r) {
+    ctx.beginPath();
+    ctx.roundRect(x,y,w,h,r);
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,400,400);
+    for (let y=0;y<N;y++) for (let x=0;x<N;x++) {
+      ctx.fillStyle=(x+y)%2===0?"#102027":"#13262b";
+      ctx.fillRect(x*CELL,y*CELL,CELL,CELL);
+    }
+    if (apple) {
+      const ax=apple.x*CELL+10, ay=apple.y*CELL+10;
+      ctx.save();
+      ctx.shadowColor="#ff304f"; ctx.shadowBlur=18;
+      const g=ctx.createRadialGradient(ax-3,ay-4,1,ax,ay,10);
+      g.addColorStop(0,"#ffb5bd"); g.addColorStop(.42,"#ff3555"); g.addColorStop(1,"#a90028");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ax,ay,8,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0; ctx.strokeStyle="#72ff83"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(ax,ay-7); ctx.lineTo(ax+2,ay-12); ctx.stroke();
+      ctx.restore();
+    }
+    snake.forEach((p,i)=>{
+      const x=p.x*CELL,y=p.y*CELL;
+      ctx.save();
+      ctx.shadowColor="#00ff91"; ctx.shadowBlur=i===0?15:5;
+      const g=ctx.createLinearGradient(x,y,x+20,y+20);
+      g.addColorStop(0,i===0?"#c4ffdc":"#45f6a5");
+      g.addColorStop(1,i===0?"#14d978":"#087e55");
+      ctx.fillStyle=g; roundedRect(x+1,y+1,18,18,6); ctx.fill();
+      ctx.restore();
+    });
+    if (snake && snake.length) {
+      const h=snake[0], hx=h.x*CELL, hy=h.y*CELL;
+      ctx.fillStyle="#052c1c";
+      if (direction.x) {
+        const ex=direction.x>0?hx+13:hx+5;
+        ctx.beginPath(); ctx.arc(ex,hy+6,2,0,7); ctx.arc(ex,hy+14,2,0,7); ctx.fill();
+      } else {
+        const ey=direction.y>0?hy+13:hy+5;
+        ctx.beginPath(); ctx.arc(hx+6,ey,2,0,7); ctx.arc(hx+14,ey,2,0,7); ctx.fill();
+      }
+    }
+    if (state==="paused") {
+      ctx.fillStyle="#02090bcc"; ctx.fillRect(0,0,400,400);
+      ctx.fillStyle="#8affc1"; ctx.textAlign="center"; ctx.font="bold 30px system-ui";
+      ctx.fillText("ПАУЗА",200,195);
+      ctx.font="15px system-ui"; ctx.fillText("Нажми «Продолжить»",200,225);
+    }
+  }
+
+  // Keyboard
+  document.addEventListener("keydown", e=>{
+    const map={ArrowUp:"UP",w:"UP",W:"UP",ArrowDown:"DOWN",s:"DOWN",S:"DOWN",
+      ArrowLeft:"LEFT",a:"LEFT",A:"LEFT",ArrowRight:"RIGHT",d:"RIGHT",D:"RIGHT"};
+    if (map[e.key]) { e.preventDefault(); setDirection(map[e.key]); }
+    if (e.key===" " || e.key==="Escape") { e.preventDefault(); togglePause(); }
+  });
+
+  // On-screen directional buttons
+  document.querySelectorAll("[data-dir]").forEach(btn=>{
+    btn.addEventListener("pointerdown", e=>{ e.preventDefault(); setDirection(btn.dataset.dir); });
+  });
+
+  // Swipe controls on the board
+  let startX=0,startY=0;
+  canvas.addEventListener("pointerdown", e=>{
+    startX=e.clientX; startY=e.clientY;
+    if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointerup", e=>{
+    const dx=e.clientX-startX, dy=e.clientY-startY;
+    if (Math.max(Math.abs(dx),Math.abs(dy))<18) return;
+    if (Math.abs(dx)>Math.abs(dy)) setDirection(dx>0?"RIGHT":"LEFT");
+    else setDirection(dy>0?"DOWN":"UP");
+  });
+
+  $("restartBtn").addEventListener("click",start);
+  $("againBtn").addEventListener("click",start);
+  $("pauseBtn").addEventListener("click",togglePause);
+  $("soundBtn").addEventListener("click",()=>{
+    soundOn=!soundOn;
+    $("soundBtn").textContent=soundOn?"♫":"♪";
+    $("soundBtn").style.background=soundOn?"#24543d":"#142720";
+    if (soundOn) beep(600,.08);
+  });
+
+  document.addEventListener("visibilitychange",()=>{
+    if (document.hidden && state==="playing") togglePause();
+  });
+
+  start();
+
+  // Service worker: required for installable/offline PWA on HTTPS or localhost.
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load",()=>{
+      navigator.serviceWorker.register("./sw.js").catch(err=>console.warn("SW:",err));
+    });
+  }
+})();
+</script>
+</body>
+</html>

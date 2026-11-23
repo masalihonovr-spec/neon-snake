@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "NEON SNAKE",
+  "short_name": "NEON SNAKE",
+  "description": "Неоновая змейка: собирай яблоки, устанавливай рекорды и проходи сквозь стены.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080d12",
+  "theme_color": "#080d12",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
